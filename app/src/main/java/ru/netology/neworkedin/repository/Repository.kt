@@ -1,5 +1,6 @@
 package ru.netology.neworkedin.repository
 
+import androidx.paging.PagingData
 import kotlinx.coroutines.flow.Flow
 import ru.netology.neworkedin.dataclass.*
 
@@ -7,12 +8,12 @@ import ru.netology.neworkedin.dataclass.*
 
 interface Repository {
 
-    val data: Flow<List<Post>>
+    val data: Flow<PagingData<Post>>
     val dataUsers: Flow<List<User>>
     val dataEvents: Flow<List<Event>>
     val dataJobs: Flow<List<Job>>
 
-    fun getNewerCount(id: Long): Flow<Int>
+    fun getNewerCount(): Flow<Int>
     suspend fun showNewPosts()
     suspend fun edit(post: Post)
     suspend fun getAllAsync()

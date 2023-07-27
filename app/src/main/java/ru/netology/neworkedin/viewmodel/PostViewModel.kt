@@ -5,12 +5,13 @@ import android.net.Uri
 import androidx.core.net.toFile
 import androidx.core.net.toUri
 import androidx.lifecycle.*
+import androidx.lifecycle.switchMap
+import androidx.paging.PagingData
+import androidx.paging.map
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.flow.catch
-import kotlinx.coroutines.flow.flatMapLatest
-import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import ru.netology.neworkedin.auth.AppAuth
 import ru.netology.neworkedin.utils.ConstantValues.emptyPost
@@ -32,18 +33,15 @@ class PostViewModel @Inject constructor(
 ) : AndroidViewModel(application) {
 
     @OptIn(ExperimentalCoroutinesApi::class)
-    val data: LiveData<FeedModel>
+    val data: Flow<PagingData<Post>>
         get() = appAuth
             .authStateFlow
             .flatMapLatest { (myId, _) ->
                 repository.data
                     .map { posts ->
-                        FeedModel(
-                            posts.map { it.copy(ownedByMe = it.authorId == myId) },
-                            posts.isEmpty()
-                        )
+                            posts.map { it.copy(ownedByMe = it.authorId == myId) }
                     }
-            }.asLiveData(Dispatchers.Default)
+            }.flowOn(Dispatchers.Default)
 
     private val _dataState = MutableLiveData<FeedModelState>(FeedModelState.Idle)
     val dataState: LiveData<FeedModelState>
@@ -65,11 +63,10 @@ class PostViewModel @Inject constructor(
     val media: LiveData<MediaModel>
         get() = _media
 
-    val newerCount: LiveData<Int> = data.switchMap {
-        repository.getNewerCount(it.posts.firstOrNull()?.id ?: 0L)
+    val newerCount = repository.getNewerCount()
             .catch { e -> e.printStackTrace() }
             .asLiveData(Dispatchers.Default)
-    }
+
 
     fun changeMedia(uri: Uri?, file: File?, attachmentType: AttachmentType?) {
         _media.value = MediaModel(uri, file, attachmentType)

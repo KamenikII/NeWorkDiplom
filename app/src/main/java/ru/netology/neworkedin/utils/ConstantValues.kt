@@ -13,6 +13,8 @@ object ConstantValues {
     const val EVENT_REQUEST_TYPE = "party or speakers"
     const val USER_ID = "user id"
 
+    val pageSize: Int = 15
+
     val emptyUser = User(
         id = -1,
         login = "",

@@ -12,11 +12,13 @@ import android.widget.VideoView
 import androidx.core.view.MenuProvider
 import androidx.core.view.isVisible
 import androidx.fragment.app.*
+import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
 import com.google.android.material.snackbar.Snackbar
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import ru.netology.neworkedin.R
 import ru.netology.neworkedin.adapters.*
@@ -184,9 +186,10 @@ class FeedFragment : Fragment() {
         binding.list.adapter = adapter
         usersViewModel.dataUsersList
 
-        viewModel.data.observe(viewLifecycleOwner) {
-            adapter.submitList(it.posts)
-            binding.emptyText.isVisible = it.empty
+        lifecycleScope.launchWhenCreated {
+            viewModel.data.collectLatest {
+                adapter.submitData(it)
+            }
         }
 
         viewModel.dataState.observe(viewLifecycleOwner) {

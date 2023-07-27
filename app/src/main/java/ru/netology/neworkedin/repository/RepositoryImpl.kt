@@ -1,6 +1,8 @@
 package ru.netology.neworkedin.repository
 
 import androidx.lifecycle.*
+import androidx.paging.Pager
+import androidx.paging.PagingConfig
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
@@ -14,6 +16,7 @@ import ru.netology.neworkedin.api.*
 import ru.netology.neworkedin.dao.*
 import ru.netology.neworkedin.dataclass.*
 import ru.netology.neworkedin.error.*
+import ru.netology.neworkedin.utils.ConstantValues
 import javax.inject.Inject
 
 /** КЛАСС, ОТВЕЧАЮЩИЙ ЗА РЕАЛИЗАЦИЮ МЕТОДОВ РАБОТЫ С ПОСТАМИ, РАБОТОЙ; РАБОТАЕТ С СЕРВЕРОМ И БД */
@@ -21,13 +24,24 @@ import javax.inject.Inject
 class RepositoryImpl @Inject constructor(
     private val dao: PostDaoRoom,
     private val apiService: ApiService,
+    private val daoKey: RemoteKeyDao,
+
 ) : Repository {
 
     private val newerPostsId = mutableListOf<Long>()
 
-    override val data = dao.getAll()
-        .map(List<PostEntity>::toDto)
-        .flowOn(Dispatchers.Default)
+//    override val data = dao.getAll()
+//        .map(List<PostEntity>::toDto)
+//        .flowOn(Dispatchers.Default)
+    private val pageSize = ConstantValues.pageSize
+    override val data = Pager(
+        config = PagingConfig(pageSize = pageSize, enablePlaceholders = false, ),
+        pagingSourceFactory = {
+            PostPagingSource(
+                apiService
+            )
+        }
+    ).flow
 
     override val dataUsers = dao.getUsers()
         .map(List<UserEntity>::toDto)
@@ -41,10 +55,10 @@ class RepositoryImpl @Inject constructor(
         .map(List<JobEntity>::toDto)
         .flowOn(Dispatchers.Default)
 
-    override fun getNewerCount(id: Long): Flow<Int> = flow {
+    override fun getNewerCount(): Flow<Int> = flow {
         while (true) {
             delay(10_000L)
-            val response = apiService.getNewer(id)
+            val response = apiService.getNewer(daoKey.max() ?: 0)
 
             if (!response.isSuccessful) {
                 throw ApiError(response.message())
@@ -277,9 +291,9 @@ class RepositoryImpl @Inject constructor(
                 throw ApiError(response.message())
             }
 
-            val event = response.body() ?: throw ApiError(response.message())
+            val eventReact = response.body() ?: throw ApiError(response.message())
 
-            dao.saveEvent(EventsEntity.fromDto(event))
+            dao.saveEvent(EventsEntity.fromDto(eventReact))
 
         } catch (e: IOException) {
             throw NetworkError

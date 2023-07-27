@@ -14,6 +14,7 @@ import androidx.core.view.isVisible
 import androidx.fragment.app.*
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
+import androidx.paging.filter
 import com.bumptech.glide.Glide
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.flow.collectLatest
@@ -408,17 +409,33 @@ class ProfileFragment : Fragment() {
             }
         }
 
-        postViewModel.data.observe(viewLifecycleOwner) {
-            adapterPost.submitList(it.posts.filter { post ->
-                post.mentionIds?.contains(
-                    (arguments?.userId ?: appAuth.authStateFlow.value.id)
-                ) ?: false
-                        || post.authorId == (arguments?.userId ?: appAuth.authStateFlow.value.id)
-            })
-            binding.postTitle.text =  if (adapterPost.itemCount == 0) {
-                getString(R.string.no_posts)
-            } else {
-                getString(R.string.post_description)
+//        postViewModel.data.observe(viewLifecycleOwner) {
+//            adapterPost.submitList(it.posts.filter { post ->
+//                post.mentionIds?.contains(
+//                    (arguments?.userId ?: appAuth.authStateFlow.value.id)
+//                ) ?: false
+//                        || post.authorId == (arguments?.userId ?: appAuth.authStateFlow.value.id)
+//            })
+//            binding.postTitle.text =  if (adapterPost.itemCount == 0) {
+//                getString(R.string.no_posts)
+//            } else {
+//                getString(R.string.post_description)
+//            }
+//        }
+
+        lifecycleScope.launchWhenCreated {
+            postViewModel.data.collectLatest {
+                adapterPost.submitData(it.filter { post ->
+                    post.mentionIds?.contains(
+                        (arguments?.userId ?: appAuth.authStateFlow.value.id)
+                    ) ?: false
+                            || post.authorId == (arguments?.userId ?: appAuth.authStateFlow.value.id)
+                })
+                binding.postTitle.text =  if (adapterPost.itemCount == 0) {
+                    getString(R.string.no_posts)
+                } else {
+                    getString(R.string.post_description)
+                }
             }
         }
 
