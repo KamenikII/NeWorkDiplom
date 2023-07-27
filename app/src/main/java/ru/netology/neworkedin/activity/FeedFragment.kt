@@ -14,6 +14,7 @@ import androidx.core.view.isVisible
 import androidx.fragment.app.*
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
+import androidx.paging.LoadState
 import com.google.android.material.snackbar.Snackbar
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
@@ -189,6 +190,15 @@ class FeedFragment : Fragment() {
         lifecycleScope.launchWhenCreated {
             viewModel.data.collectLatest {
                 adapter.submitData(it)
+            }
+        }
+
+        lifecycleScope.launchWhenCreated {
+            adapter.loadStateFlow.collectLatest {
+                binding.swipe.isRefreshing =
+                    it.refresh is LoadState.Loading
+                    || it.append is LoadState.Loading
+                    || it.prepend is LoadState.Loading
             }
         }
 

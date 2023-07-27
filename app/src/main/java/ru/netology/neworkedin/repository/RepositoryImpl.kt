@@ -1,8 +1,10 @@
 package ru.netology.neworkedin.repository
 
 import androidx.lifecycle.*
+import androidx.paging.ExperimentalPagingApi
 import androidx.paging.Pager
 import androidx.paging.PagingConfig
+import androidx.paging.map
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
@@ -15,6 +17,7 @@ import okio.IOException
 import ru.netology.neworkedin.api.*
 import ru.netology.neworkedin.dao.*
 import ru.netology.neworkedin.dataclass.*
+import ru.netology.neworkedin.db.AppDBRoom
 import ru.netology.neworkedin.error.*
 import ru.netology.neworkedin.utils.ConstantValues
 import javax.inject.Inject
@@ -25,6 +28,7 @@ class RepositoryImpl @Inject constructor(
     private val dao: PostDaoRoom,
     private val apiService: ApiService,
     private val daoKey: RemoteKeyDao,
+    appDB: AppDBRoom,
 
 ) : Repository {
 
@@ -34,14 +38,23 @@ class RepositoryImpl @Inject constructor(
 //        .map(List<PostEntity>::toDto)
 //        .flowOn(Dispatchers.Default)
     private val pageSize = ConstantValues.pageSize
+
+    @OptIn(ExperimentalPagingApi::class)
     override val data = Pager(
         config = PagingConfig(pageSize = pageSize, enablePlaceholders = false, ),
         pagingSourceFactory = {
-            PostPagingSource(
-                apiService
-            )
-        }
+            dao.getPagingSource()
+        },
+        remoteMediator = PostRemoteMediator(
+            apiService = apiService,
+            postDao = dao,
+            keyDao = daoKey,
+            appDB = appDB,
+        )
     ).flow
+        .map {
+            it.map(PostEntity::toDto)
+        }
 
     override val dataUsers = dao.getUsers()
         .map(List<UserEntity>::toDto)
